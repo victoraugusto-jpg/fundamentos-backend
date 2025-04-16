@@ -48,20 +48,31 @@ const createProductBodySchema = z.object({
     .refine(isValidCPF, {
       message: 'CPF Invalid',
     }),
+  status: z.enum(['INATIVO', 'PENDENTE', 'ATIVO']),
 });
 
 const bodyValidationPipe = new ZodValidationPipe(createProductBodySchema);
 
 type CreateProductBodySchema = z.infer<typeof createProductBodySchema>;
 
+const updateStatusBodySchema = z.object({
+  status: z.enum(['INATIVO', 'PENDENTE', 'ATIVO']),
+});
+
+const updateStatusValidationPipe = new ZodValidationPipe(
+  updateStatusBodySchema,
+);
+
+type UpdateStatusBodySchema = z.infer<typeof updateStatusBodySchema>;
+
 const updateProductBodySchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(1).optional(),
-  model: z.string().min(1).optional(),
-  dateManufacture: z.string().date().optional(),
-  year: z.number().optional(),
-  brand: z.string().min(1).optional(),
-  email: z.string().email().optional(),
+  id: z.string(),
+  name: z.string().min(1),
+  model: z.string().min(1),
+  dateManufacture: z.string().date(),
+  year: z.number(),
+  brand: z.string().min(1),
+  email: z.string().email(),
   cpf: z
     .string()
     .regex(/^\d{11}$/, {
@@ -69,11 +80,11 @@ const updateProductBodySchema = z.object({
     })
     .refine(isValidCPF, {
       message: 'CPF Invalid',
-    })
-    .optional(),
+    }),
+  status: z.enum(['INATIVO', 'PENDENTE', 'ATIVO']),
 });
 
-const updateBodyValidationPipe = new ZodValidationPipe(updateProductBodySchema);
+const updatebodyValidationPipe = new ZodValidationPipe(updateProductBodySchema);
 
 type UpdateProductBodySchema = z.infer<typeof updateProductBodySchema>;
 
@@ -91,6 +102,7 @@ export class AppController {
   @HttpCode(201)
   create(@Body(bodyValidationPipe) body: CreateProductBodySchema) {
     products.push(body);
+    return body;
   }
 
   @Delete(':id')
@@ -100,9 +112,9 @@ export class AppController {
   }
 
   @Put(':id')
-  updatePut(
+  updateProduct(
     @Param('id') idUrl: string,
-    @Body(bodyValidationPipe) body: CreateProductBodySchema,
+    @Body(updatebodyValidationPipe) body: UpdateProductBodySchema,
   ) {
     const { id, brand, cpf, dateManufacture, email, model, name, year } = body;
 
@@ -118,27 +130,28 @@ export class AppController {
     newProduct.brand = brand;
     newProduct.cpf = cpf;
     newProduct.dateManufacture = dateManufacture;
-    newProduct.email = email;
+    newProduct.email = email; 
     newProduct.model = model;
     newProduct.name = name;
     newProduct.year = year;
 
     listWithoutOldProduct.push(newProduct);
+
+    return newProduct;
   }
 
   @Patch(':id')
   @HttpCode(200)
-  updatePatch(
+  updateStatus(
     @Param('id') idUrl: string,
-    @Body(updateBodyValidationPipe) body: UpdateProductBodySchema,
+    @Body(updateStatusValidationPipe) body: UpdateStatusBodySchema,
   ) {
+    const { status } = body;
+
     const productIndex = products.findIndex((product) => product.id === idUrl);
 
-    const updatedProduct = {
-      ...products[productIndex],
-      ...body,
-    };
+    products[productIndex].status = status;
 
-    products[productIndex] = updatedProduct;
+    return products[productIndex];
   }
-}                                                                                                                                                                                                      
+}
